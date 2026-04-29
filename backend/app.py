@@ -1813,7 +1813,28 @@ def get_all_orders():
     return jsonify([_serialize_order(o)
                     for o in Order.query.order_by(Order.id.desc()).all()])
 
+@app.route('/create-admin', methods=['POST'])
+def create_admin():
+    data = request.get_json()
 
+    email = data.get("admin@mail.com")
+    nom = data.get("Radim")
+    mdp = data.get("admin")
+
+    if User.query.filter_by(email=email).first():
+        return jsonify({"error": "Existe déjà"}), 400
+
+    admin = User(
+        nom=nom,
+        email=email,
+        mot_de_passe=generate_password_hash(mdp),
+        role="admin"
+    )
+
+    db.session.add(admin)
+    db.session.commit()
+
+    return jsonify({"message": "Admin créé"})
 @app.route('/users/cleanup-tmp', methods=['POST'])
 def cleanup_tmp_users_v2():
     """
