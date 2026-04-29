@@ -1813,28 +1813,8 @@ def get_all_orders():
     return jsonify([_serialize_order(o)
                     for o in Order.query.order_by(Order.id.desc()).all()])
 
-@app.route('/create-admin', methods=['POST'])
-def create_admin():
-    data = request.get_json()
 
-    email = data.get("admin@mail.com")
-    nom = data.get("Radim")
-    mdp = data.get("admin")
 
-    if User.query.filter_by(email=email).first():
-        return jsonify({"error": "Existe déjà"}), 400
-
-    admin = User(
-        nom=nom,
-        email=email,
-        mot_de_passe=generate_password_hash(mdp),
-        role="admin"
-    )
-
-    db.session.add(admin)
-    db.session.commit()
-
-    return jsonify({"message": "Admin créé"})
 @app.route('/users/cleanup-tmp', methods=['POST'])
 def cleanup_tmp_users_v2():
     """
@@ -1937,22 +1917,49 @@ def run_migrations():
 # ================================================================
 # INITIALISATION — fonctionne avec Gunicorn (Render) ET python app.py (local)
 # ================================================================
+# ================================================================
+def create_admin_if_not_exists():
+    admin_email = "admin@mgshop.com"
+
+    admin = User.query.filter_by(email=admin_email).first()
+
+    if not admin:
+        admin = User(
+            nom="Admin",
+            email=admin_email,
+            mot_de_passe=generate_password_hash("admin123"),
+            role="admin"
+        )
+        db.session.add(admin)
+        db.session.commit()
+        print("[seed] Admin créé")
+    else:
+        print("[seed] Admin déjà existant")
+
+
 def initialize_app():
-    """Appelé au démarrage, que ce soit via Gunicorn ou en direct."""
+    """Appelé au démarrage (Render ou local)."""
     with app.app_context():
         db.create_all()
         run_migrations()
+
+        # 🔥 SEED ADMIN
+        create_admin_if_not_exists()
+
+        # NLP (si tu l'utilises)
         try:
             get_spam_model()
             print("[nlp] Modèle spam initialisé")
         except Exception as e:
             print(f"[nlp] Erreur init spam : {e}")
+
         print("[init] MGShop prêt")
 
-# Exécution au import du module (donc au démarrage Gunicorn)
+
+# Exécution au démarrage Gunicorn
 initialize_app()
 
+
 if __name__ == '__main__':
-    # Mode développement local uniquement
     port = int(os.getenv('PORT', 5000))
     app.run(debug=True, host='0.0.0.0', port=port)
