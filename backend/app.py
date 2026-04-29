@@ -1815,7 +1815,7 @@ def get_all_orders():
 
 
 @app.route('/users/cleanup-tmp', methods=['POST'])
-def cleanup_tmp_users():
+def cleanup_tmp_users_v2():
     """
     Supprime les users temporaires (email @mgshop.tmp) qui n'ont
     aucune commande active (pending / awaiting_confirmation).
